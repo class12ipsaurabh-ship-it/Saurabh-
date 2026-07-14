@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>You Are Beautiful</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,500&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --white:#ffffff;
+    --blush:#ffe6ee;
+    --pink:#ff8fb3;
+    --rose:#ff4d88;
+    --deep-pink:#e0247e;
+    --magenta:#c23bb0;
+    --purple:#9b5de5;
+    --deep-purple:#6a3fb5;
+    --ink:#5a2a4d;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+
+  html,body{
+    height:100%;
+    background:var(--white);
+    font-family:'Quicksand', sans-serif;
+    overflow:hidden;
+    color:var(--ink);
+  }
+
+  .screen{
+    position:fixed;
+    inset:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    background:var(--white);
+  }
+
+  /* ================= LOADING SCREEN (no hearts, plain) ================= */
+  #loading{ z-index:50; transition:opacity 0.7s ease, visibility 0.7s ease; }
+  #loading.hide{ opacity:0; visibility:hidden; pointer-events:none; }
+
+  .spinner{
+    width:46px;
+    height:46px;
+    border-radius:50%;
+    border:3px solid var(--blush);
+    border-top-color:var(--purple);
+    border-right-color:var(--rose);
+    animation:spin 0.9s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  .loading-text{
+    margin-top:24px;
+    font-family:'Quicksand', sans-serif;
+    font-weight:600;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    font-size:0.8rem;
+    color:var(--ink);
+    opacity:.6;
+  }
+
+  .progress-track{
+    margin-top:20px;
+    width:200px;
+    height:5px;
+    border-radius:6px;
+    background:var(--blush);
+    overflow:hidden;
+  }
+  .progress-fill{
+    height:100%;
+    width:0%;
+    border-radius:6px;
+    background:linear-gradient(90deg, var(--rose), var(--purple));
+    transition:width 0.25s ease;
+  }
+
+  /* ================= CHASE SCREEN ================= */
+  #chase{
+    z-index:40;
+    display:none;
+    overflow:hidden;
+  }
+  #chase.active{ display:flex; }
+
+  .chase-caption{
+    position:absolute;
+    top:14%;
+    left:50%;
+    transform:translateX(-50%);
+    font-family:'Cormorant Garamond', serif;
+    font-style:italic;
+    font-size:clamp(1.2rem, 3vw, 1.7rem);
+    color:var(--deep-pink);
+    opacity:0.85;
+    max-width:80vw;
+    transition:opacity 0.3s ease;
+  }
+
+  .dodge-btn{
+    position:fixed;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+    border:none;
+    outline:none;
+    cursor:pointer;
+    font-family:'Quicksand', sans-serif;
+    font-weight:700;
+    font-size:1.05rem;
+    letter-spacing:0.5px;
+    color:#fff;
+    padding:18px 40px;
+    border-radius:50px;
+    background:linear-gradient(120deg, var(--rose), var(--magenta), var(--purple));
+    box-shadow:0 12px 26px rgba(224,36,126,0.35);
+    transition:left 0.16s cubic-bezier(.2,.9,.3,1.2), top 0.16s cubic-bezier(.2,.9,.3,1.2), box-shadow 0.3s ease, transform 0.3s ease;
+    user-select:none;
+    -webkit-user-select:none;
+    z-index:41;
+  }
+
+  .dodge-btn.tired{
+    animation:tiredGlow 1.1s ease-in-out infinite;
+    background:linear-gradient(120deg, var(--purple), var(--deep-pink));
+  }
+  @keyframes tiredGlow{
+    0%,100%{ box-shadow:0 12px 26px rgba(155,93,229,0.35); transform:translate(-50%,-50%) scale(1); }
+    50%{ box-shadow:0 16px 34px rgba(224,36,126,0.55); transform:translate(-50%,-50%) scale(1.06); }
+  }
+
+  /* ================= REVEAL SCREEN ================= */
+  #main{
+    z-index:5;
+    padding:30px;
+    opacity:0;
+    display:none;
+    transition:opacity 1s ease;
+  }
+  #main.show{ opacity:1; display:flex; }
+
+  .heart-intro{
+    width:76px;
+    height:70px;
+    opacity:0;
+    transform:scale(0.6);
+    transition:opacity 1.4s ease, transform 1.4s ease;
+    margin-bottom:26px;
+  }
+  .heart-intro.fade-in{
+    opacity:1;
+    transform:scale(1);
+  }
+  .heart-intro svg{ width:100%; height:100%; display:block; }
+
+  .eyebrow{
+    font-family:'Quicksand',sans-serif;
+    font-weight:600;
+    letter-spacing:4px;
+    text-transform:uppercase;
+    font-size:0.75rem;
+    color:var(--purple);
+    margin-bottom:18px;
+    opacity:0;
+  }
+  .eyebrow.reveal{ animation:fadeUp 0.8s ease forwards; }
+
+  .compliment-wrap{
+    position:relative;
+    min-height:170px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    max-width:760px;
+  }
+
+  #compliment{
+    font-family:'Cormorant Garamond', serif;
+    font-weight:600;
+    font-size:clamp(2.1rem, 7vw, 4.4rem);
+    line-height:1.15;
+    background:linear-gradient(100deg, var(--rose) 0%, var(--deep-pink) 35%, var(--magenta) 65%, var(--purple) 100%);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    letter-spacing:0.5px;
+    opacity:0;
+    transform:translateY(18px) scale(0.98);
+    transition:opacity 0.55s ease, transform 0.55s ease;
+    cursor:default;
+  }
+  #compliment.visible{
+    opacity:1;
+    transform:translateY(0) scale(1);
+  }
+
+  .controls{
+    margin-top:40px;
+    display:flex;
+    gap:16px;
+    opacity:0;
+  }
+  .controls.reveal{ animation:fadeUp 0.8s ease forwards; }
+
+  @keyframes fadeUp{
+    from{ opacity:0; transform:translateY(14px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+
+  .btn{
+    border:none;
+    outline:none;
+    cursor:pointer;
+    font-family:'Quicksand',sans-serif;
+    font-weight:600;
+    font-size:0.95rem;
+    letter-spacing:0.5px;
+    padding:13px 30px;
+    border-radius:40px;
+    transition:transform 0.25s ease, box-shadow 0.25s ease;
+  }
+  .btn:active{ transform:scale(0.94); }
+
+  .btn-primary{
+    background:linear-gradient(120deg, var(--rose), var(--purple));
+    color:#fff;
+    box-shadow:0 10px 24px rgba(224,36,126,0.32);
+  }
+  .btn-primary:hover{
+    box-shadow:0 14px 30px rgba(155,93,229,0.4);
+    transform:translateY(-2px);
+  }
+
+  .btn-ghost{
+    background:transparent;
+    color:var(--deep-pink);
+    border:1.5px solid var(--pink);
+  }
+  .btn-ghost:hover{
+    background:var(--blush);
+    transform:translateY(-2px);
+  }
+
+  .counter{
+    margin-top:22px;
+    display:flex;
+    gap:7px;
+    opacity:0;
+  }
+  .counter.reveal{ animation:fadeUp 0.8s ease forwards; }
+  .dot{
+    width:7px;
+    height:7px;
+    border-radius:50%;
+    background:var(--blush);
+    transition:background 0.3s ease, transform 0.3s ease;
+  }
+  .dot.active{
+    background:linear-gradient(120deg, var(--rose), var(--purple));
+    transform:scale(1.3);
+  }
+
+  /* ambient hearts — only spawned after reveal */
+  #ambient{
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:1;
+    overflow:hidden;
+  }
+  .amb-heart{
+    position:absolute;
+    bottom:-10%;
+    opacity:0;
+    animation:floatUp linear infinite;
+    filter:drop-shadow(0 4px 10px rgba(224,36,126,0.15));
+  }
+  @keyframes floatUp{
+    0%{ transform:translateY(0) translateX(0) rotate(0deg) scale(var(--s,1)); opacity:0; }
+    10%{ opacity:.85; }
+    50%{ transform:translateY(-55vh) translateX(var(--drift,20px)) rotate(15deg) scale(var(--s,1)); }
+    90%{ opacity:.6; }
+    100%{ transform:translateY(-115vh) translateX(calc(var(--drift,20px) * -1)) rotate(-10deg) scale(var(--s,1)); opacity:0; }
+  }
+
+  .burst-heart{
+    position:fixed;
+    pointer-events:none;
+    z-index:60;
+    font-size:1.4rem;
+    animation:burst 1s ease-out forwards;
+  }
+  @keyframes burst{
+    0%{ transform:translate(0,0) scale(0.6) rotate(0deg); opacity:1; }
+    100%{ transform:translate(var(--bx), var(--by)) scale(1.3) rotate(var(--br)); opacity:0; }
+  }
+
+  footer{
+    position:fixed;
+    bottom:16px;
+    left:0;
+    right:0;
+    text-align:center;
+    font-size:0.72rem;
+    letter-spacing:1px;
+    color:var(--pink);
+    opacity:0.65;
+    z-index:5;
+    pointer-events:none;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .amb-heart, .burst-heart, .dodge-btn.tired{ animation:none !important; }
+  }
+
+  @media (max-width:480px){
+    .controls{ flex-direction:column; width:80%; }
+    .btn{ width:100%; }
+  }
+</style>
+</head>
+<body>
+
+<div id="ambient"></div>
+
+<!-- LOADING SCREEN — plain, no hearts -->
+<div id="loading" class="screen">
+  <div class="spinner"></div>
+  <div class="loading-text">loading</div>
+  <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+</div>
+
+<!-- CHASE SCREEN -->
+<div id="chase" class="screen">
+  <div class="chase-caption" id="chaseCaption">there's something waiting for you. go on, click it.</div>
+  <button class="dodge-btn" id="dodgeBtn">Click Me</button>
+</div>
+
+<!-- REVEAL SCREEN -->
+<div id="main" class="screen">
+  <div class="heart-intro" id="heartIntro">
+    <svg viewBox="0 0 32 29" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="heartGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#ff8fb3"/>
+          <stop offset="45%" stop-color="#e0247e"/>
+          <stop offset="100%" stop-color="#9b5de5"/>
+        </linearGradient>
+      </defs>
+      <path fill="url(#heartGrad)" d="M23.6,0c-3.4,0-6.3,2.1-7.6,5.1C14.7,2.1,11.8,0,8.4,0C3.8,0,0,3.8,0,8.4
+        c0,9.4,10.9,15.4,16,20.6c5.1-5.2,16-11.1,16-20.6C32,3.8,28.2,0,23.6,0z"/>
+    </svg>
+  </div>
+  <div class="eyebrow" id="eyebrow">a little reminder</div>
+  <div class="compliment-wrap">
+    <div id="compliment">YOU ARE BEAUTIFUL</div>
+  </div>
+
+  <div class="controls" id="controls">
+    <button class="btn btn-primary" id="nextBtn">Another one, please</button>
+    <button class="btn btn-ghost" id="shareBtn">Send a heart</button>
+  </div>
+
+  <div class="counter" id="counter"></div>
+</div>
+
+<footer>made with 💗 for you</footer>
+
+<script>
+  /* ===================== LOADING ===================== */
+  const loadingEl = document.getElementById('loading');
+  const chaseEl = document.getElementById('chase');
+  const progressFill = document.getElementById('progressFill');
+
+  let progress = 0;
+  const progressTimer = setInterval(() => {
+    progress += Math.random() * 16 + 6;
+    if(progress >= 100){
+      progress = 100;
+      clearInterval(progressTimer);
+      setTimeout(startChase, 300);
+    }
+    progressFill.style.width = progress + '%';
+  }, 220);
+
+  function startChase(){
+    loadingEl.classList.add('hide');
+    chaseEl.classList.add('active');
+  }
+
+  /* ===================== CHASE / DODGE BUTTON ===================== */
+  const dodgeBtn = document.getElementById('dodgeBtn');
+  const chaseCaption = document.getElementById('chaseCaption');
+
+  const DODGE_RADIUS = 150;      // how close the cursor can get before it flees
+  const TIRED_AFTER = 9;         // number of successful dodges before it gives up (the loophole)
+  let dodgeCount = 0;
+  let isTired = false;
+  let btnPos = { x: 0, y: 0 };
+
+  const captions = [
+    "there's something waiting for you. go on, click it.",
+    "so close...",
+    "almost had it!",
+    "you'll never catch it like that.",
+    "keep going, it can't run forever.",
+    "it's getting tired..."
+  ];
+
+  function placeButton(x, y){
+    const w = window.innerWidth, h = window.innerHeight;
+    const rect = dodgeBtn.getBoundingClientRect();
+    const pad = 24;
+    x = Math.max(rect.width/2 + pad, Math.min(w - rect.width/2 - pad, x));
+    y = Math.max(rect.height/2 + pad, Math.min(h - rect.height/2 - pad, y));
+    btnPos = { x, y };
+    dodgeBtn.style.left = x + 'px';
+    dodgeBtn.style.top = y + 'px';
+  }
+
+  // start centered
+  placeButton(window.innerWidth/2, window.innerHeight/2);
+
+  function fleeFrom(clientX, clientY){
+    if(isTired) return;
+
+    const w = window.innerWidth, h = window.innerHeight;
+    let best = null, bestDist = -1;
+
+    for(let i=0;i<6;i++){
+      const candX = Math.random() * w;
+      const candY = Math.random() * h;
+      const d = Math.hypot(candX - clientX, candY - clientY);
+      if(d > bestDist){ bestDist = d; best = {x:candX,y:candY}; }
+    }
+
+    placeButton(best.x, best.y);
+    dodgeCount++;
+
+    if(dodgeCount === 3) updateCaption(2);
+    if(dodgeCount === 5) updateCaption(3);
+    if(dodgeCount === 7) updateCaption(4);
+
+    if(dodgeCount >= TIRED_AFTER){
+      makeTired();
+    }
+  }
+
+  function updateCaption(i){
+    chaseCaption.style.opacity = 0;
+    setTimeout(() => {
+      chaseCaption.textContent = captions[i];
+      chaseCaption.style.opacity = 0.85;
+    }, 250);
+  }
+
+  function makeTired(){
+    isTired = true;
+    dodgeBtn.classList.add('tired');
+    updateCaption(5);
+  }
+
+  function proximityCheck(clientX, clientY){
+    if(isTired) return;
+    const d = Math.hypot(clientX - btnPos.x, clientY - btnPos.y);
+    if(d < DODGE_RADIUS){
+      fleeFrom(clientX, clientY);
+    }
+  }
+
+  window.addEventListener('pointermove', (e) => {
+    if(!chaseEl.classList.contains('active')) return;
+    proximityCheck(e.clientX, e.clientY);
+  });
+
+  // touch devices: a tap near the button (without hover) should still make it dodge once
+  window.addEventListener('touchstart', (e) => {
+    if(!chaseEl.classList.contains('active')) return;
+    const t = e.touches[0];
+    if(!t) return;
+    if(!isTired) proximityCheck(t.clientX, t.clientY);
+  }, { passive: true });
+
+  window.addEventListener('resize', () => {
+    placeButton(btnPos.x, btnPos.y);
+  });
+
+  dodgeBtn.addEventListener('click', () => {
+    if(!isTired){
+      // shouldn't usually be reachable mid-chase, but just in case: one more flee
+      fleeFrom(btnPos.x, btnPos.y);
+      return;
+    }
+    revealMain();
+  });
+
+  /* ===================== REVEAL ===================== */
+  const mainEl = document.getElementById('main');
+  const heartIntro = document.getElementById('heartIntro');
+  const eyebrow = document.getElementById('eyebrow');
+  const complimentEl = document.getElementById('compliment');
+  const controlsEl = document.getElementById('controls');
+  const counterEl = document.getElementById('counter');
+  const ambient = document.getElementById('ambient');
+
+  function revealMain(){
+    chaseEl.classList.remove('active');
+    mainEl.classList.add('show');
+
+    // heart fades in first, alone
+    setTimeout(() => heartIntro.classList.add('fade-in'), 150);
+
+    // then the message follows
+    setTimeout(() => {
+      complimentEl.classList.add('visible');
+      eyebrow.classList.add('reveal');
+    }, 1100);
+
+    setTimeout(() => {
+      controlsEl.classList.add('reveal');
+      counterEl.classList.add('reveal');
+      startAmbientHearts();
+    }, 1600);
+  }
+
+  /* ===================== COMPLIMENTS ===================== */
+  const compliments = [
+    "YOU ARE BEAUTIFUL",
+    "Your smile could light up a whole room",
+    "You are so much stronger than you know",
+    "The world is better with you in it",
+    "You have the kindest heart",
+    "You radiate warmth and grace",
+    "Your presence is a gift to everyone around you",
+    "You are worthy of every good thing coming your way",
+    "You shine, even on your quietest days",
+    "You are enough, exactly as you are",
+    "Your laugh is someone's favorite sound",
+    "You make ordinary moments feel special"
+  ];
+
+  let index = 0;
+  compliments.forEach((_, i) => {
+    const dot = document.createElement('div');
+    dot.classList.add('dot');
+    if(i === 0) dot.classList.add('active');
+    counterEl.appendChild(dot);
+  });
+
+  function updateDots(){
+    [...counterEl.children].forEach((d,i) => d.classList.toggle('active', i === index));
+  }
+
+  function showCompliment(text){
+    complimentEl.classList.remove('visible');
+    setTimeout(() => {
+      complimentEl.textContent = text;
+      complimentEl.classList.add('visible');
+    }, 260);
+  }
+
+  document.getElementById('nextBtn').addEventListener('click', () => {
+    index = (index + 1) % compliments.length;
+    showCompliment(compliments[index]);
+    updateDots();
+    spawnBurst(document.getElementById('nextBtn'));
+  });
+
+  document.getElementById('shareBtn').addEventListener('click', (e) => {
+    spawnBurst(document.getElementById('shareBtn'), 10);
+  });
+
+  complimentEl.addEventListener('click', () => spawnBurst(complimentEl, 4));
+
+  /* ===================== AMBIENT HEARTS (post-reveal only) ===================== */
+  const heartChars = ['💗','💕','💖','💓','❤️','💜'];
+  let ambientInterval;
+
+  function createAmbientHeart(){
+    const h = document.createElement('div');
+    h.classList.add('amb-heart');
+    h.textContent = heartChars[Math.floor(Math.random()*heartChars.length)];
+    const size = Math.random() * 1.4 + 0.9;
+    const left = Math.random() * 100;
+    const duration = Math.random() * 6 + 7;
+    const drift = (Math.random() * 80 - 40) + 'px';
+    h.style.left = left + 'vw';
+    h.style.fontSize = size + 'rem';
+    h.style.setProperty('--s', size);
+    h.style.setProperty('--drift', drift);
+    h.style.animationDuration = duration + 's';
+    ambient.appendChild(h);
+    setTimeout(() => h.remove(), duration * 1000 + 200);
+  }
+
+  function startAmbientHearts(){
+    for(let i=0;i<5;i++){ setTimeout(createAmbientHeart, i * 400); }
+    ambientInterval = setInterval(createAmbientHeart, 900);
+  }
+
+  /* ===================== CLICK BURST ===================== */
+  function spawnBurst(anchorEl, count = 6){
+    const rect = anchorEl.getBoundingClientRect();
+    const originX = rect.left + rect.width/2;
+    const originY = rect.top + rect.height/2;
+
+    for(let i=0;i<count;i++){
+      const heart = document.createElement('div');
+      heart.classList.add('burst-heart');
+      heart.textContent = heartChars[Math.floor(Math.random()*heartChars.length)];
+      heart.style.left = originX + 'px';
+      heart.style.top = originY + 'px';
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 60 + Math.random() * 90;
+      heart.style.setProperty('--bx', Math.cos(angle) * dist + 'px');
+      heart.style.setProperty('--by', Math.sin(angle) * dist - 40 + 'px');
+      heart.style.setProperty('--br', (Math.random()*60 - 30) + 'deg');
+      document.body.appendChild(heart);
+      setTimeout(() => heart.remove(), 1050);
+    }
+  }
+</script>
+
+</body>
+</html>
